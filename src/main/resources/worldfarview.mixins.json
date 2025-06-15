@@ -1,0 +1,16 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "gord1402.worldfarview.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "refmap": "worldfarview.refmap.json",
+  "mixins": [
+    "BlockStateBaseAccessor",
+    "ChunkGeneratorAccessor"
+  ],
+  "client": [
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
