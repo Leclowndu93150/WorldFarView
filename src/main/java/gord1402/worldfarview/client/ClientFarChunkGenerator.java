@@ -19,4 +19,6 @@ public abstract class ClientFarChunkGenerator {
     public abstract void init(long seed);
     public abstract int getHeightAt(int x, int z);
     public abstract int getHexColorAt(int x, int y, int z);
+
+    public abstract int getHexColorAt(int x, int z);
 }

@@ -10,4 +10,6 @@ public abstract class FarChunkGenerator {
     public abstract void init(ChunkGenerator generator, ServerLevel level);
     public abstract int getHeightAt(int x, int z);
     public abstract int getHexColorAt(int x, int y, int z);
+
+    public abstract int getHexColorAt(int x, int z);
 }

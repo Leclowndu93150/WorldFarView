@@ -3,8 +3,10 @@
 #moj_import <fog.glsl>
 
 in float vertexDistance;
-in vec4 vertexColor;
+in vec2 uv;
 in vec4 normal;
+
+uniform sampler2D Sampler0;
 
 uniform float FogStart;
 uniform float FogEnd;
@@ -16,6 +18,8 @@ uniform vec3 SunDirection;
 out vec4 fragColor;
 
 void main() {
+    vec4 texColor = texture(Sampler0, uv);
+
     vec3 norm = normalize(normal.xyz);
 
     // --- Lighting calculations ---
@@ -40,12 +44,12 @@ void main() {
 
     // Tint moonlight slightly blue
     vec3 moonTint = vec3(0.6, 0.7, 1.0);
-    vec3 baseColor = vertexColor.rgb * totalLight;
+    vec3 baseColor = texColor.rgb * totalLight;
     baseColor += moonTint * moonlight;
 
     vec4 color = vec4(baseColor, 1.0) * ColorModulator;
 
-    if (vertexColor.a == 0.0) {
+    if (texColor.a == 0.0) {
         discard;
     }
 

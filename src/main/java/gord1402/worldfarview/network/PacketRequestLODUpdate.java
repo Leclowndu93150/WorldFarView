@@ -1,13 +1,8 @@
 package gord1402.worldfarview.network;
 
-import gord1402.worldfarview.FarPlaneLOD;
-import gord1402.worldfarview.WorldFarView;
-import gord1402.worldfarview.client.WorldFarPlaneClient;
 import gord1402.worldfarview.config.ServerConfig;
 import gord1402.worldfarview.server.FarPlaneManager;
-import net.minecraft.client.Minecraft;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.network.NetworkEvent;

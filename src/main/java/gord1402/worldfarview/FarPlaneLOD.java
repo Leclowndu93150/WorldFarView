@@ -1,11 +1,15 @@
 package gord1402.worldfarview;
 
+import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.vertex.*;
 import gord1402.worldfarview.client.ClientFarChunkGenerator;
 import gord1402.worldfarview.network.ModNetworking;
 import gord1402.worldfarview.network.PacketLODUpdate;
 import gord1402.worldfarview.registry.FarChunkGenerators;
 import gord1402.worldfarview.renderer.MeshData;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.texture.DynamicTexture;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.chunk.ChunkGenerator;
@@ -180,18 +184,48 @@ public class FarPlaneLOD {
         WorldFarView.LOGGER.info("Building mesh data for {}", lodIndex);
         BufferBuilder bufferBuilder = Tesselator.getInstance().getBuilder();
         try {
+            int step = size / resolution;
+
+            // Bake texture
+            DynamicTexture dynamicTexture = new DynamicTexture(
+                    (int) Math.ceil((2. * size) / step),
+                    (int) Math.ceil((2. * size) / step),
+                    false);
+            NativeImage image = dynamicTexture.getPixels();
+
             int index = 0;
+            int tx = 0, tz = 0;
+
+            for (int wx = -size; wx < size; wx += step) {
+                for (int wz = -size; wz < size; wz += step) {
+                    tz ++;
+                    if (Math.abs(wx) < (size / 2 - step) && Math.abs(wz) < (size / 2 - step)) {
+                        continue;
+                    }
+                    int c = colorMap[index];
+                    int abgr = (c & 0xFF00FF00) | ((c >> 16) & 0xFF) | ((c & 0xFF) << 16);
+
+                    image.setPixelRGBA(tx, tz - 1, abgr);
+                    index++;
+                }
+                tz = 0;
+                tx ++;
+            }
+
+
+            dynamicTexture.upload();
+            ResourceLocation texture = Minecraft.getInstance().getTextureManager().register("farplane_" + lodIndex, dynamicTexture);
+
+            // Make mesh
+            index = 0;
             int quads_count = 0;
 
             Map<Vertex, Integer> vertices = new HashMap<>();
-            Map<Vertex, Integer> vertices_colors = new HashMap<>();
             Map<Vertex, Vec3> normalAccumulator = new HashMap<>();
             Map<Vertex, Integer> vertexRefCount = new HashMap<>();
 
 
-            bufferBuilder.begin(VertexFormat.Mode.TRIANGLES, DefaultVertexFormat.POSITION_COLOR_NORMAL);
-
-            int step = size / resolution;
+            bufferBuilder.begin(VertexFormat.Mode.TRIANGLES, DefaultVertexFormat.POSITION_TEX_COLOR_NORMAL);
 
             for (int x = -size; x < size; x += step) {
                 for (int z = -size; z < size; z += step) {
@@ -204,9 +238,6 @@ public class FarPlaneLOD {
                     int worldZ = centerZ + z;
                     int worldY = heightMap[index];
 
-                    int color = colorMap[index];
-                    int a = (color >> 24) & 0xFF, r = (color >> 16) & 0xFF, g = (color >> 8) & 0xFF, b = (color) & 0xFF;
-
 
                     Vertex v0 = new Vertex(worldX, worldZ);
                     Vertex v1 = new Vertex(worldX - step, worldZ);
@@ -218,17 +249,8 @@ public class FarPlaneLOD {
                     Integer y3 = vertices.get(v3);
 
                     vertices.put(v0, worldY);
-                    vertices_colors.put(v0, color);
 
                     if (y1 != null && y2 != null && y3 != null) {
-                        int color1 = vertices_colors.get(v1);
-                        int a1 = (color1 >> 24) & 0xFF, r1 = (color1 >> 16) & 0xFF, g1 = (color1 >> 8) & 0xFF, b1 = (color1) & 0xFF;
-
-                        int color2 = vertices_colors.get(v2);
-                        int a2 = (color2 >> 24) & 0xFF, r2 = (color2 >> 16) & 0xFF, g2 = (color2 >> 8) & 0xFF, b2 = (color2) & 0xFF;
-
-                        int color3 = vertices_colors.get(v3);
-                        int a3 = (color3 >> 24) & 0xFF, r3 = (color3 >> 16) & 0xFF, g3 = (color3 >> 8) & 0xFF, b3 = (color3) & 0xFF;
 
                         // Triangle 1: v0 - v1 - v2
                         Vec3 p0 = new Vec3(worldX, worldY, worldZ);
@@ -258,35 +280,46 @@ public class FarPlaneLOD {
                         Vec3 n2 = getSmoothNormal(normalAccumulator, vertexRefCount, v2);
                         Vec3 n3 = getSmoothNormal(normalAccumulator, vertexRefCount, v3);
 
+                        float tu0 = ((float) x / size + 1) / 2.f, tv0 = ((float) z / size + 1) / 2f;
+                        float tu1 = ((float) (x - step) / size + 1) / 2f, tv1 = ((float) (z) / size + 1) / 2f;
+                        float tu2 = ((float) (x) / size + 1) / 2f, tv2 = ((float) (z - step) / size + 1) / 2f;
+                        float tu3 = ((float) (x - step) / size + 1) / 2f, tv3 = ((float) (z - step) / size + 1) / 2f;
+
                         // First triangle
                         bufferBuilder.vertex(worldX, worldY, worldZ)
-                                .color(r, g, b, a)
+                                .uv(tu0, tv0)
+                                .color(0xFFFFFFFF)
                                 .normal((float) -n0.x, (float) -n0.y, (float) -n0.z)
                                 .endVertex();
 
                         bufferBuilder.vertex(worldX - step, y1, worldZ)
-                                .color(r1, g1, b1, a1)
+                                .uv(tu1, tv1)
+                                .color(0xFFFFFFFF)
                                 .normal((float) -n1.x, (float) -n1.y, (float) -n1.z)
                                 .endVertex();
 
                         bufferBuilder.vertex(worldX, y2, worldZ - step)
-                                .color(r2, g2, b2, a2)
+                                .uv(tu2, tv2)
+                                .color(0xFFFFFFFF)
                                 .normal((float) -n2.x, (float) -n2.y, (float) -n2.z)
                                 .endVertex();
 
                         // Second triangle
                         bufferBuilder.vertex(worldX - step, y1, worldZ)
-                                .color(r1, g1, b1, a1)
+                                .uv(tu1, tv1)
+                                .color(0xFFFFFFFF)
                                 .normal((float) -n1.x, (float) -n1.y, (float) -n1.z)
                                 .endVertex();
 
                         bufferBuilder.vertex(worldX - step, y3, worldZ - step)
-                                .color(r3, g3, b3, a3)
+                                .uv(tu3, tv3)
+                                .color(0xFFFFFFFF)
                                 .normal((float) -n3.x, (float) -n3.y, (float) -n3.z)
                                 .endVertex();
 
                         bufferBuilder.vertex(worldX, y2, worldZ - step)
-                                .color(r2, g2, b2, a2)
+                                .uv(tu2, tv2)
+                                .color(0xFFFFFFFF)
                                 .normal((float) -n2.x, (float) -n2.y, (float) -n2.z)
                                 .endVertex();
                         quads_count++;
@@ -305,7 +338,7 @@ public class FarPlaneLOD {
                 vertexBuffer.upload(renderedBuffer);
                 VertexBuffer.unbind();
 
-                return new MeshData(vertexBuffer);
+                return new MeshData(vertexBuffer, texture);
             }
             return null;
         } catch (Exception e) {

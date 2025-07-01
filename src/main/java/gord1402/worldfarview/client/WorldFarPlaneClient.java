@@ -2,7 +2,6 @@ package gord1402.worldfarview.client;
 
 import gord1402.worldfarview.config.Config;
 import gord1402.worldfarview.FarPlaneLOD;
-import gord1402.worldfarview.WorldFarView;
 import gord1402.worldfarview.network.*;
 import gord1402.worldfarview.registry.FarChunkGenerators;
 import net.minecraft.ChatFormatting;

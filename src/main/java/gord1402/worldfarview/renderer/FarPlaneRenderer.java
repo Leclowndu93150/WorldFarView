@@ -7,6 +7,7 @@ import com.mojang.blaze3d.vertex.*;
 import com.mojang.math.Axis;
 import gord1402.worldfarview.FarPlaneLOD;
 import gord1402.worldfarview.ModClientEvents;
+import gord1402.worldfarview.WorldFarView;
 import gord1402.worldfarview.client.WorldFarPlaneClient;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
@@ -18,6 +19,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
+import org.lwjgl.opengl.GL11;
 
 public class FarPlaneRenderer {
     public static double FOV = 70.;

@@ -4,7 +4,6 @@ import gord1402.worldfarview.FarPlaneLOD;
 import gord1402.worldfarview.WorldFarView;
 import gord1402.worldfarview.config.ServerConfig;
 import gord1402.worldfarview.network.ModNetworking;
-import gord1402.worldfarview.network.PacketLODUpdate;
 import gord1402.worldfarview.network.PacketLODUpdateError;
 import gord1402.worldfarview.network.PacketServerConfiguration;
 import net.minecraft.network.chat.Component;

@@ -17,6 +17,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.BlockAndTintGetter;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelHeightAccessor;
 import net.minecraft.world.level.NoiseColumn;
 import net.minecraft.world.level.biome.Biome;
@@ -36,6 +37,8 @@ public class VanilaFarChunkGenerator extends FarChunkGenerator {
     DensityFunction densityFunction;
     NoiseGeneratorSettings settings;
 
+    boolean isEnd = false;
+
     public VanilaFarChunkGenerator(){
         super();
 
@@ -49,12 +52,14 @@ public class VanilaFarChunkGenerator extends FarChunkGenerator {
         this.generator = (NoiseBasedChunkGenerator) generator;
         this.settings = ((NoiseBasedChunkGenerator) generator).generatorSettings().value();
         this.densityFunction = randomState.router().finalDensity();
+
+        this.isEnd = level.dimension() == Level.END;
     }
 
     @Override
     public int getHeightAt(int x, int z) {
-        int low = settings.seaLevel();
-        int high = settings.seaLevel() + settings.noiseSettings().height();
+        int low = this.isEnd?settings.noiseSettings().minY():settings.seaLevel();
+        int high = low + settings.noiseSettings().height();
         int result = low;
 
         while (low <= high) {
@@ -75,6 +80,13 @@ public class VanilaFarChunkGenerator extends FarChunkGenerator {
 
     @Override
     public int getHexColorAt(int x, int y, int z) {
+        if (isEnd){
+            if (y <= settings.noiseSettings().minY()){
+                return 0x00e7efb0;
+            }
+            return 0xFFe7efb0;
+        }
+
         Holder<Biome> biome = generator.getBiomeSource().getNoiseBiome(
                 QuartPos.fromBlock(x),
                 QuartPos.fromBlock(y),
@@ -84,17 +96,12 @@ public class VanilaFarChunkGenerator extends FarChunkGenerator {
 
         ResourceLocation biomeId = biome.unwrapKey().orElseThrow().location();
 
-        Climate.Sampler sampler = randomState.sampler();
-        Climate.TargetPoint climate = sampler.sample(x, y, z);
-
-        double temperature = climate.temperature();
 
         int color;
 
         if (y <= settings.seaLevel()){
             color = 0x4060D0;
-        }
-        else {
+        } else {
             color = switch (biomeId.getPath()) {
                 case "desert" -> 0xEEDD88; // sand
                 case "snowy_taiga", "snowy_plains", "snowy_slopes", "frozen_peaks" -> 0xFFFFFF; // snow
@@ -107,6 +114,42 @@ public class VanilaFarChunkGenerator extends FarChunkGenerator {
                 }
             };
         }
+
+        return 0xFF000000 | color;
+    }
+
+    @Override
+    public int getHexColorAt(int x, int z) {
+        if (isEnd){
+            if (sampleDensity(x, settings.noiseSettings().minY() + settings.noiseSettings().height() / 2, z) > 0){
+                return 0x00e7efb0;
+            }
+            return 0xFFe7efb0;
+        }
+
+        Holder<Biome> biome = generator.getBiomeSource().getNoiseBiome(
+                QuartPos.fromBlock(x),
+                QuartPos.fromBlock(settings.seaLevel()),
+                QuartPos.fromBlock(z),
+                randomState.sampler()
+        );
+
+        ResourceLocation biomeId = biome.unwrapKey().orElseThrow().location();
+
+        int color = switch (biomeId.getPath()) {
+            case "desert" -> 0xEEDD88; // sand
+            case "snowy_taiga", "snowy_plains", "snowy_slopes", "frozen_peaks" -> 0xFFFFFF; // snow
+            case "windswept_hills", "windswept_gravelly_hills" -> 0x888888; // stone
+            case "badlands", "eroded_badlands" -> 0xD27847; // terracotta
+            case "savanna" -> 0xBDB76B; // dry grass
+
+            case "cold_ocean", "warm_ocean", "ocean", "lukewarm_ocean", "frozen_ocean", "deep_ocean",
+                 "deep_lukewarm_ocean", "deep_frozen_ocean", "deep_cold_ocean" -> 0x4060D0;
+
+            default -> {
+                yield biome.value().getGrassColor(x, z);
+            }
+        };
 
         return 0xFF000000 | color;
     }

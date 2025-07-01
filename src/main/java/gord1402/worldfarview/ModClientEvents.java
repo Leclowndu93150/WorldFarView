@@ -6,6 +6,7 @@ import gord1402.worldfarview.config.Config;
 import gord1402.worldfarview.network.ModNetworking;
 import gord1402.worldfarview.network.PacketRequestServerConfiguration;
 import gord1402.worldfarview.renderer.FarPlaneRenderer;
+import gord1402.worldfarview.renderer.MeshData;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.ShaderInstance;
@@ -39,7 +40,7 @@ public class ModClientEvents {
     public static void shaderRegistry(RegisterShadersEvent event) throws IOException
     {
         event.registerShader(
-                new ShaderInstance(event.getResourceProvider(), new ResourceLocation(WorldFarView.MODID, "far_terrain"), DefaultVertexFormat.POSITION_COLOR),
+                new ShaderInstance(event.getResourceProvider(), new ResourceLocation(WorldFarView.MODID, "far_terrain"), DefaultVertexFormat.POSITION_TEX_COLOR_NORMAL),
                 shader -> FAR_TERRAIN_SHADER = shader
         );
     }
