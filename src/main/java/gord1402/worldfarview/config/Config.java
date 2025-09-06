@@ -37,6 +37,12 @@ public class Config {
     public static final ForgeConfigSpec.BooleanValue ENABLE_CROSSFADE;
     public static final ForgeConfigSpec.DoubleValue CROSSFADE_DISTANCE;
 
+    // Smooth adaptation settings
+    public static final ForgeConfigSpec.BooleanValue SMOOTH_ADAPTATION;
+    public static final ForgeConfigSpec.DoubleValue ADAPTATION_SPEED;
+    public static final ForgeConfigSpec.IntValue MIN_BOUNDARY;
+    public static final ForgeConfigSpec.IntValue MAX_BOUNDARY;
+
     // Static config values for easy access
     public static boolean disableVanillaFog = true;
     public static double customFogStart = 0.8;
@@ -45,6 +51,10 @@ public class Config {
     public static boolean autoFitRenderDistance = true;
     public static boolean enableCrossfade = true;
     public static double crossfadeDistance = 32.0;
+    public static boolean smoothAdaptation = false;
+    public static double adaptationSpeed = 0.05;
+    public static int minBoundary = 256;
+    public static int maxBoundary = 2048;
 
     static {
         BUILDER.push("Client Settings");
@@ -96,6 +106,25 @@ public class Config {
                 .defineInRange("crossfadeDistance", 32.0, 8.0, 128.0);
 
         BUILDER.pop();
+        BUILDER.push("Smooth Adaptation");
+
+        SMOOTH_ADAPTATION = BUILDER
+                .comment("Enable smooth LOD adaptation based on actually rendered chunks")
+                .define("smoothAdaptation", false);
+
+        ADAPTATION_SPEED = BUILDER
+                .comment("Speed of LOD boundary adaptation (0.01 = slow, 0.1 = fast)")
+                .defineInRange("adaptationSpeed", 0.05, 0.01, 0.2);
+
+        MIN_BOUNDARY = BUILDER
+                .comment("Minimum LOD boundary distance in blocks")
+                .defineInRange("minBoundary", 256, 128, 1024);
+
+        MAX_BOUNDARY = BUILDER
+                .comment("Maximum LOD boundary distance in blocks")
+                .defineInRange("maxBoundary", 2048, 512, 4096);
+
+        BUILDER.pop();
 
     }
 
@@ -114,6 +143,15 @@ public class Config {
         autoFitRenderDistance = AUTO_FIT_RENDER_DISTANCE.get();
         enableCrossfade = ENABLE_CROSSFADE.get();
         crossfadeDistance = CROSSFADE_DISTANCE.get();
+        smoothAdaptation = SMOOTH_ADAPTATION.get();
+        adaptationSpeed = ADAPTATION_SPEED.get();
+        minBoundary = MIN_BOUNDARY.get();
+        maxBoundary = MAX_BOUNDARY.get();
+        
+        // Update tracker settings if needed
+        if (smoothAdaptation) {
+            gord1402.worldfarview.client.ChunkRenderTracker.forceUpdate();
+        }
     }
 
 

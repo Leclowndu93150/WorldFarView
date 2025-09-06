@@ -8,6 +8,7 @@ import com.mojang.math.Axis;
 import gord1402.worldfarview.FarPlaneLOD;
 import gord1402.worldfarview.ModClientEvents;
 import gord1402.worldfarview.WorldFarView;
+import gord1402.worldfarview.client.ChunkRenderTracker;
 import gord1402.worldfarview.client.WorldFarPlaneClient;
 import gord1402.worldfarview.config.Config;
 import net.minecraft.client.Camera;
@@ -158,11 +159,15 @@ public class FarPlaneRenderer {
     }
 
     private static float getMeshStartDistance() {
-        Minecraft mc = Minecraft.getInstance();
-        if (Config.autoFitRenderDistance || Config.meshStartDistance == 0) {
-            return mc.options.renderDistance().get() * 16.0f;
+        if (Config.smoothAdaptation) {
+            return ChunkRenderTracker.getMeshStartDistance();
         } else {
-            return (float) Config.meshStartDistance;
+            Minecraft mc = Minecraft.getInstance();
+            if (Config.autoFitRenderDistance || Config.meshStartDistance == 0) {
+                return mc.options.renderDistance().get() * 16.0f;
+            } else {
+                return (float) Config.meshStartDistance;
+            }
         }
     }
 

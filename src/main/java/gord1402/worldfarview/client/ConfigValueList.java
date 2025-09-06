@@ -2,6 +2,7 @@ package gord1402.worldfarview.client;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.ContainerObjectSelectionList;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.events.GuiEventListener;
@@ -37,7 +38,10 @@ public class ConfigValueList extends ContainerObjectSelectionList<ConfigValueLis
         @Override
         public void render(GuiGraphics guiGraphics, int index, int top, int left, int width, int height,
                            int mouseX, int mouseY, boolean isMouseOver, float partialTick) {
+            // Enable scissor clipping for proper scrolling
+            guiGraphics.enableScissor(left, top, left + width, top + height);
             this.configValue.render(guiGraphics, left, top, width, height, mouseX, mouseY, isMouseOver, partialTick);
+            guiGraphics.disableScissor();
         }
 
         @Override
@@ -99,7 +103,7 @@ public class ConfigValueList extends ContainerObjectSelectionList<ConfigValueLis
                            int mouseX, int mouseY, boolean isMouseOver, float partialTick) {
             if (textField == null) {
                 textField = new EditBox(Minecraft.getInstance().font,
-                        x + width - 100, y, 80, 20,
+                        0, 0, 80, 20,
                         Component.literal(String.valueOf(configValue.get())));
                 textField.setValue(String.valueOf(configValue.get()));
                 textField.setResponder(value -> {
@@ -121,13 +125,146 @@ public class ConfigValueList extends ContainerObjectSelectionList<ConfigValueLis
                 }
             }
 
+            // Update position for scrolling
+            textField.setX(x + width - 100);
+            textField.setY(y + 2);
+            
+            // Set visibility based on position
+            textField.visible = (y >= 0 && y < height - 20);
+
             guiGraphics.drawString(Minecraft.getInstance().font,
                     label,
                     x + 10,
                     y + 6,
                     0xFFFFFF);
 
-            textField.render(guiGraphics, mouseX, mouseY, partialTick);
+            if (textField.visible) {
+                textField.render(guiGraphics, mouseX, mouseY, partialTick);
+            }
+        }
+
+        @Override
+        public void onClick(double mouseX, double mouseY) {
+            if (textField != null) {
+                textField.mouseClicked(mouseX, mouseY, 0);
+            }
+        }
+
+        @Override
+        public boolean mouseClicked(double mouseX, double mouseY, int button) {
+            return textField != null && textField.mouseClicked(mouseX, mouseY, button);
+        }
+    }
+
+    public static class BooleanConfigValue extends AbstractConfigValue<Boolean> {
+        private Button button;
+
+        public BooleanConfigValue(Component label, ForgeConfigSpec.BooleanValue configValue) {
+            super(label, configValue);
+        }
+
+        @Override
+        public void render(GuiGraphics guiGraphics, int x, int y, int width, int height,
+                           int mouseX, int mouseY, boolean isMouseOver, float partialTick) {
+            if (button == null) {
+                button = Button.builder(
+                        Component.literal(configValue.get() ? "True" : "False"),
+                        b -> {
+                            configValue.set(!configValue.get());
+                            button.setMessage(Component.literal(configValue.get() ? "True" : "False"));
+                        }
+                ).bounds(0, 0, 80, 20).build();
+
+                if (parentEntry != null) {
+                    parentEntry.children.add(button);
+                    parentEntry.narratables.add(button);
+                }
+            }
+
+            // Update position for scrolling
+            button.setX(x + width - 100);
+            button.setY(y + 2);
+            
+            // Set visibility based on position
+            button.visible = (y >= 0 && y < height - 20);
+
+            guiGraphics.drawString(Minecraft.getInstance().font,
+                    label,
+                    x + 10,
+                    y + 6,
+                    0xFFFFFF);
+
+            if (button.visible) {
+                button.render(guiGraphics, mouseX, mouseY, partialTick);
+            }
+        }
+
+        @Override
+        public void onClick(double mouseX, double mouseY) {
+            if (button != null) {
+                button.mouseClicked(mouseX, mouseY, 0);
+            }
+        }
+
+        @Override
+        public boolean mouseClicked(double mouseX, double mouseY, int button) {
+            return this.button != null && this.button.mouseClicked(mouseX, mouseY, button);
+        }
+    }
+
+    public static class DoubleConfigValue extends AbstractConfigValue<Double> {
+        private final double min;
+        private final double max;
+        private EditBox textField;
+
+        public DoubleConfigValue(Component label, ForgeConfigSpec.DoubleValue configValue, double min, double max) {
+            super(label, configValue);
+            this.min = min;
+            this.max = max;
+        }
+
+        @Override
+        public void render(GuiGraphics guiGraphics, int x, int y, int width, int height,
+                           int mouseX, int mouseY, boolean isMouseOver, float partialTick) {
+            if (textField == null) {
+                textField = new EditBox(Minecraft.getInstance().font,
+                        0, 0, 80, 20,
+                        Component.literal(String.format("%.2f", configValue.get())));
+                textField.setValue(String.format("%.2f", configValue.get()));
+                textField.setResponder(value -> {
+                    try {
+                        double doubleValue = Double.parseDouble(value);
+                        double clamped = Mth.clamp(doubleValue, min, max);
+                        if (Math.abs(doubleValue - clamped) < 0.001) {
+                            configValue.set(doubleValue);
+                        } else {
+                            textField.setValue(String.format("%.2f", clamped));
+                        }
+                    } catch (NumberFormatException ignored) {}
+                });
+
+                if (parentEntry != null) {
+                    parentEntry.children.add(textField);
+                    parentEntry.narratables.add(textField);
+                }
+            }
+
+            // Update position for scrolling
+            textField.setX(x + width - 100);
+            textField.setY(y + 2);
+            
+            // Set visibility based on position  
+            textField.visible = (y >= 0 && y < height - 20);
+
+            guiGraphics.drawString(Minecraft.getInstance().font,
+                    label,
+                    x + 10,
+                    y + 6,
+                    0xFFFFFF);
+
+            if (textField.visible) {
+                textField.render(guiGraphics, mouseX, mouseY, partialTick);
+            }
         }
 
         @Override

@@ -9,6 +9,8 @@
     "ChunkGeneratorAccessor"
   ],
   "client": [
+    "FogRendererMixin",
+    "LevelRendererMixin"
   ],
   "injectors": {
     "defaultRequire": 1

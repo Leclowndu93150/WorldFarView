@@ -9,6 +9,10 @@ import gord1402.worldfarview.network.ModNetworking;
 import gord1402.worldfarview.network.PacketServerConfiguration;
 import gord1402.worldfarview.server.FarPlaneManager;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.renderer.LevelRenderer;
+import net.minecraft.client.renderer.ViewArea;
+import net.minecraft.client.renderer.chunk.ChunkRenderDispatcher;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.api.distmarker.Dist;
@@ -83,4 +87,5 @@ public class WorldFarView {
         public static void onClientSetup(FMLClientSetupEvent event) {
         }
     }
+
 }

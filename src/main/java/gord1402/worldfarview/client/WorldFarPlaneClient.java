@@ -153,6 +153,9 @@ public class WorldFarPlaneClient {
     }
 
     public static void tick(double playerX, double playerZ) {
+        // Update chunk render boundaries for smooth adaptation
+        ChunkRenderTracker.updateBoundary();
+        
         if (configDirty) {
             if (Minecraft.getInstance().getConnection() != null){
                 ModNetworking.CHANNEL.sendToServer(new PacketRequestServerConfiguration());
