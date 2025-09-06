@@ -59,5 +59,13 @@ public class ModClientEvents {
             }
         }
 
+        @SubscribeEvent
+        public static void onRenderFog(ViewportEvent.RenderFog event) {
+            if (Config.disableVanillaFog) {
+                event.setFarPlaneDistance(100000.0f);
+                event.setNearPlaneDistance(90000.0f);
+            }
+        }
+
     }
 }

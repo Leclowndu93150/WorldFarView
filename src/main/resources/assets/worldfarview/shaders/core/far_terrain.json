@@ -19,6 +19,12 @@
     { "name": "ModelViewMat", "type": "matrix4x4", "count": 16, "values": [ 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0 ] },
     { "name": "ProjMat", "type": "matrix4x4", "count": 16, "values": [ 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0 ] },
     { "name": "ColorModulator", "type": "float", "count": 4, "values": [ 1.0, 1.0, 1.0, 1.0 ] },
-    { "name": "SunDirection", "type": "float", "count": 3, "values": [ 1.0, 1.0, 1.0] }
+    { "name": "SunDirection", "type": "float", "count": 3, "values": [ 1.0, 1.0, 1.0] },
+    { "name": "CustomFogStart", "type": "float", "count": 1, "values": [ 500.0 ] },
+    { "name": "CustomFogEnd", "type": "float", "count": 1, "values": [ 1000.0 ] },
+    { "name": "EnableCustomFog", "type": "float", "count": 1, "values": [ 1.0 ] },
+    { "name": "EnableCrossfade", "type": "float", "count": 1, "values": [ 1.0 ] },
+    { "name": "CrossfadeStart", "type": "float", "count": 1, "values": [ 400.0 ] },
+    { "name": "CrossfadeEnd", "type": "float", "count": 1, "values": [ 500.0 ] }
   ]
 }

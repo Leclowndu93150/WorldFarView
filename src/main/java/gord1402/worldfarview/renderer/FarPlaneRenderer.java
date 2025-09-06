@@ -9,6 +9,7 @@ import gord1402.worldfarview.FarPlaneLOD;
 import gord1402.worldfarview.ModClientEvents;
 import gord1402.worldfarview.WorldFarView;
 import gord1402.worldfarview.client.WorldFarPlaneClient;
+import gord1402.worldfarview.config.Config;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GameRenderer;
@@ -25,19 +26,27 @@ public class FarPlaneRenderer {
     public static double FOV = 70.;
 
     public static void render(PoseStack poseStack, Camera camera, float partialTick) {
-        if (WorldFarPlaneClient.disabled) return;
+        if (WorldFarPlaneClient.disabled) {
+            return;
+        }
+
+        ShaderInstance shader = ModClientEvents.FAR_TERRAIN_SHADER;
+        if (shader == null) {
+            return;
+        }
+
         Vec3 camPos = camera.getPosition();
-
         Matrix4f originalProjection = RenderSystem.getProjectionMatrix();
+
         Matrix4f farProjection = new Matrix4f();
-        float fov = (float) FOV; // degrees
-        float aspectRatio = (float) Minecraft.getInstance().getWindow().getWidth() / Minecraft.getInstance().getWindow().getHeight();
+        float fovRad = (float) FOV;
+        float aspectRatio = (float) Minecraft.getInstance().getWindow().getWidth() /
+                (float) Minecraft.getInstance().getWindow().getHeight();
         float near = 0.05f;
-        float far = 40000000.0f; // Increase far plane here
+        float far = 40000000.0f;
+        farProjection.setPerspective(fovRad * 0.017453292f, aspectRatio, near, far);
 
-        farProjection.setPerspective(fov * ((float) Math.PI / 180F), aspectRatio, near, far);
         RenderSystem.setProjectionMatrix(farProjection, VertexSorting.DISTANCE_TO_ORIGIN);
-
         RenderSystem.enableBlend();
         RenderSystem.blendFuncSeparate(
                 GlStateManager.SourceFactor.SRC_ALPHA,
@@ -48,33 +57,17 @@ public class FarPlaneRenderer {
 
         PoseStack bobStack = new PoseStack();
         bobHurt(bobStack, camera.getEntity(), partialTick);
+
         if (Minecraft.getInstance().options.bobView().get()) {
             bobView(bobStack, camera.getEntity(), partialTick);
         }
-        bobStack.mulPose(Axis.ZP.rotationDegrees(0));
+
+        bobStack.mulPose(Axis.ZP.rotationDegrees(0.0f));
         bobStack.mulPose(Axis.XP.rotationDegrees(camera.getXRot()));
-        bobStack.mulPose(Axis.YP.rotationDegrees(camera.getYRot() + 180.0F));
+        bobStack.mulPose(Axis.YP.rotationDegrees(camera.getYRot() + 180.0f));
         bobStack.translate(-camPos.x, -camPos.y, -camPos.z);
 
-        ShaderInstance shader = ModClientEvents.FAR_TERRAIN_SHADER;
-
-        if (shader != null) {
-            Uniform sunDirUniform = shader.getUniform("SunDirection");
-            if (sunDirUniform != null) {
-                float celestialAngle = camera.getEntity().level().getTimeOfDay(partialTick);
-                float sunYaw = 0;
-                float sunPitch = (float)(Math.cos(celestialAngle * 2 * Math.PI) * Math.PI / 2.0);
-
-
-
-                Vec3 sunDirection = new Vec3(
-                        Math.cos(sunYaw) * Math.cos(sunPitch),
-                        Math.sin(sunPitch),
-                        Math.sin(sunYaw) * Math.cos(sunPitch)
-                );
-                sunDirUniform.set((float)sunDirection.x, (float)sunDirection.y, (float)sunDirection.z);
-            }
-        }
+        setupShaderUniforms(shader, camera, partialTick);
 
         RenderSystem.setShader(() -> shader);
         RenderSystem.enableBlend();
@@ -82,17 +75,95 @@ public class FarPlaneRenderer {
 
         Matrix4f matrix = bobStack.last().pose();
 
-        for (FarPlaneLOD lod : WorldFarPlaneClient.getLods()) {
-            if (lod == null) continue;
-            MeshData mesh = lod.getOrBuild();
-            if (mesh != null && mesh.isValid()) {
-                mesh.render(matrix, farProjection);
+        FarPlaneLOD[] lods = WorldFarPlaneClient.getLods();
+        if (lods != null) {
+            for (FarPlaneLOD lod : lods) {
+                if (lod != null && shouldRenderLOD(lod, camPos)) {
+                    MeshData mesh = lod.getOrBuild();
+                    if (mesh != null && mesh.isValid()) {
+                        mesh.render(matrix, farProjection);
+                    }
+                }
             }
         }
 
         RenderSystem.disableBlend();
         RenderSystem.enableCull();
         RenderSystem.setProjectionMatrix(originalProjection, VertexSorting.DISTANCE_TO_ORIGIN);
+    }
+
+    private static void setupShaderUniforms(ShaderInstance shader, Camera camera, float partialTick) {
+        Minecraft mc = Minecraft.getInstance();
+
+        Uniform sunDirUniform = shader.getUniform("SunDirection");
+        if (sunDirUniform != null) {
+            float celestialAngle = camera.getEntity().level().getTimeOfDay(partialTick);
+            float sunYaw = 0.0f;
+            float sunPitch = (float)(Math.cos(celestialAngle * 2.0f * Math.PI) * Math.PI / 2.0);
+            Vec3 sunDirection = new Vec3(
+                    Math.cos(sunYaw) * Math.cos(sunPitch),
+                    Math.sin(sunPitch),
+                    Math.sin(sunYaw) * Math.cos(sunPitch)
+            );
+            sunDirUniform.set((float)sunDirection.x, (float)sunDirection.y, (float)sunDirection.z);
+        }
+
+        float renderDistance = mc.options.renderDistance().get() * 16.0f;
+
+        Uniform fogStartUniform = shader.getUniform("CustomFogStart");
+        if (fogStartUniform != null) {
+            fogStartUniform.set(renderDistance * (float) Config.customFogStart);
+        }
+
+        Uniform fogEndUniform = shader.getUniform("CustomFogEnd");
+        if (fogEndUniform != null) {
+            fogEndUniform.set(renderDistance * (float) Config.customFogEnd);
+        }
+
+        Uniform enableFogUniform = shader.getUniform("EnableCustomFog");
+        if (enableFogUniform != null) {
+            enableFogUniform.set(Config.disableVanillaFog ? 1.0f : 0.0f);
+        }
+
+        Uniform enableCrossfadeUniform = shader.getUniform("EnableCrossfade");
+        if (enableCrossfadeUniform != null) {
+            enableCrossfadeUniform.set(Config.enableCrossfade ? 1.0f : 0.0f);
+        }
+
+        float meshStart = getMeshStartDistance();
+        float crossfadeDistance = (float) Config.crossfadeDistance;
+
+        Uniform crossfadeStartUniform = shader.getUniform("CrossfadeStart");
+        if (crossfadeStartUniform != null) {
+            crossfadeStartUniform.set(meshStart - crossfadeDistance);
+        }
+
+        Uniform crossfadeEndUniform = shader.getUniform("CrossfadeEnd");
+        if (crossfadeEndUniform != null) {
+            crossfadeEndUniform.set(meshStart);
+        }
+    }
+
+    private static boolean shouldRenderLOD(FarPlaneLOD lod, Vec3 camPos) {
+        if (lod.getLodIndex() == 0 && (Config.autoFitRenderDistance || Config.meshStartDistance > 0)) {
+            double distanceToCenter = Math.sqrt(
+                    Math.pow(camPos.x - lod.centerX, 2) +
+                            Math.pow(camPos.z - lod.centerZ, 2)
+            );
+
+            float meshStartDistance = getMeshStartDistance();
+            return distanceToCenter >= meshStartDistance - lod.getSize() / 2;
+        }
+        return true;
+    }
+
+    private static float getMeshStartDistance() {
+        Minecraft mc = Minecraft.getInstance();
+        if (Config.autoFitRenderDistance || Config.meshStartDistance == 0) {
+            return mc.options.renderDistance().get() * 16.0f;
+        } else {
+            return (float) Config.meshStartDistance;
+        }
     }
 
     public static void bobHurt(PoseStack poseStack, Entity cameraEntity,  float partialTick) {
